@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>La Gomera Walking Trip - October 2025</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css"/>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css"/>
+    <style>
+        * {margin:0;padding:0;box-sizing:border-box}
+        body {font-family:'Segoe UI',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);padding:20px}
+        .container {max-width:1400px;margin:0 auto;background:white;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+        header {background:linear-gradient(135deg,#2c3e50 0%,#34495e 100%);color:white;padding:40px;text-align:center}
+        h1 {font-size:2.5em;margin-bottom:10px;font-weight:300;letter-spacing:2px}
+        .subtitle {font-size:1.2em;opacity:0.9}
+        .content {display:grid;grid-template-columns:480px 1fr;min-height:600px}
+        .sidebar {background:#f8f9fa;padding:30px;overflow-y:auto;max-height:800px;border-right:1px solid #e0e0e0}
+        .map-container {position:relative;height:800px;width:100%}
+        #map {height:100%;width:100%}
+        .hike-card {background:white;border-radius:12px;padding:20px;margin-bottom:20px;border-left:4px solid #ddd;transition:all 0.3s}
+        .hike-card:hover {box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+        .hike-title {font-weight:600;margin-bottom:10px;color:#2c3e50}
+        .photo-gallery {margin-top:15px;padding-top:15px;border-top:1px solid #e0e0e0}
+        .photo-count {color:#667eea;font-weight:600;margin-bottom:10px;font-size:0.9em}
+        .photo-thumbnails {display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+        .photo-thumb {width:100%;height:100px;object-fit:cover;border-radius:8px;cursor:pointer;transition:transform 0.2s;border:2px solid transparent}
+        .photo-thumb:hover {transform:scale(1.05);border-color:#667eea}
+        .lightbox {display:none;position:fixed;z-index:9999;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,0.9);justify-content:center;align-items:center}
+        .lightbox.active {display:flex}
+        .lightbox-content {max-width:90%;max-height:90%;object-fit:contain;border-radius:8px}
+        .lightbox-close {position:absolute;top:30px;right:40px;color:white;font-size:40px;cursor:pointer}
+        .lightbox-info {position:absolute;bottom:30px;left:50%;transform:translateX(-50%);color:white;background:rgba(0,0,0,0.7);padding:15px 30px;border-radius:8px;max-width:800px;text-align:center;line-height:1.6}
+        footer {text-align:center;padding:30px;background:#f8f9fa;color:#666}
+        .stats-bar {display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:20px;padding:30px;background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%);border-bottom:2px solid #dee2e6}
+        .stat-box {text-align:center;padding:15px;background:white;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
+        .stat-value {font-size:2em;font-weight:700;color:#667eea;display:block;margin-bottom:5px}
+        .stat-label {font-size:0.85em;color:#6c757d;text-transform:uppercase;letter-spacing:1px}
+        .day-description {margin-top:10px;font-size:0.9em;color:#495057;line-height:1.5}
+        .day-highlights {margin-top:10px;font-size:0.85em;color:#6c757d;font-style:italic}
+        .difficulty-badge {display:inline-block;margin-top:10px;padding:5px 12px;background:#ffc107;color:#000;border-radius:20px;font-size:0.8em;font-weight:600}
+        .weather-info {margin-top:10px;padding:10px;background:#f0f8ff;border-radius:8px;font-size:0.9em;color:#2c3e50}
+        .weather-info strong {color:#667eea}
+        .elevation-chart-container {margin-top:15px;padding-top:15px;border-top:1px solid #e0e0e0}
+        .elevation-chart {width:100%;height:120px;display:block}
+        .gradient-legend {position:absolute;bottom:10px;right:10px;background:white;padding:12px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);font-size:0.85em;z-index:1000}
+        .gradient-legend-item {display:flex;align-items:center;margin:4px 0}
+        .gradient-color {width:30px;height:12px;margin-right:8px;border-radius:2px}
+        .reset-button {position:absolute;top:10px;left:10px;background:white;padding:10px 16px;border:none;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.2);font-size:0.9em;font-weight:600;color:#2c3e50;cursor:pointer;z-index:1001;transition:all 0.2s}
+        .reset-button:hover {background:#667eea;color:white;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+        @media (max-width:968px) {
+            .content {grid-template-columns:1fr}
+            .sidebar {max-height:none}
+            .map-container {height:500px}
+            .stats-bar {grid-template-columns:repeat(2,1fr);gap:15px;padding:20px}
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🥾 La Gomera Walking Adventure</h1>
+            <div class="subtitle">October 2025 • Canary Islands, Spain • 352 Photos</div>
+        </header>
+        <div class="stats-bar" id="stats-bar"></div>
+        <div class="content">
+            <div class="sidebar" id="sidebar"></div>
+            <div class="map-container">
+                <div id="map"></div>
+            </div>
+        </div>
+        <footer>Created with ❤️ • A memento of your amazing journey</footer>
+    </div>
+    <div id="lightbox" class="lightbox" onclick="closeLightbox()">
+        <span class="lightbox-close">&times;</span>
+        <img id="lightboxImg" class="lightbox-content">
+        <div id="lightboxInfo" class="lightbox-info"></div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+        let data;
+        fetch('track_data.json')
+            .then(response => response.json())
+            .then(jsonData => {
+                data = jsonData;
+                initializeMap();
+            })
+            .catch(error => {
+                console.error('Error loading track data:', error);
+                alert('Failed to load track data. Please ensure track_data.json is in the same directory.');
+            });
+        
+        function openLightbox(img, info) {
+            document.getElementById('lightbox').classList.add('active');
+            document.getElementById('lightboxImg').src = img;
+            document.getElementById('lightboxInfo').innerHTML = info;
+            event.stopPropagation();
+        }
+        
+        function closeLightbox() {
+            document.getElementById('lightbox').classList.remove('active');
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371; // Earth's radius in km
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function calculateGradient(ele1, ele2, distance) {
+            return ((ele2 - ele1) / (distance * 1000)) * 100; // % grade
+        }
+
+        function getGradientColor(gradient) {
+            const absGrad = Math.abs(gradient);
+            if (absGrad < 5) return '#4ade80'; // green
+            if (absGrad < 10) return '#fbbf24'; // yellow
+            if (absGrad < 15) return '#fb923c'; // orange
+            return '#f87171'; // red
+        }
+
+        function drawGradientRoute(map, points, baseColor) {
+            for (let i = 0; i < points.length - 1; i++) {
+                const p1 = points[i];
+                const p2 = points[i + 1];
+                const dist = calculateDistance(p1[0], p1[1], p2[0], p2[1]);
+                const gradient = calculateGradient(p1[2], p2[2], dist);
+                const color = getGradientColor(gradient);
+
+                L.polyline([[p1[0], p1[1]], [p2[0], p2[1]]], {
+                    color: color,
+                    weight: 4,
+                    opacity: 0.8
+                }).addTo(map);
+            }
+        }
+
+        function createElevationChart(canvasId, points, routeColor) {
+            const distances = [0];
+            const elevations = [points[0][2]];
+
+            for (let i = 1; i < points.length; i++) {
+                const dist = calculateDistance(points[i-1][0], points[i-1][1], points[i][0], points[i][1]);
+                distances.push(distances[i-1] + dist);
+                elevations.push(points[i][2]);
+            }
+
+            // Sample data to reduce chart points (every 10th point)
+            const sampledDist = distances.filter((_, i) => i % 10 === 0);
+            const sampledEle = elevations.filter((_, i) => i % 10 === 0);
+
+            new Chart(document.getElementById(canvasId), {
+                type: 'line',
+                data: {
+                    labels: sampledDist.map(d => d.toFixed(1)),
+                    datasets: [{
+                        data: sampledEle,
+                        borderColor: routeColor,
+                        backgroundColor: routeColor + '40',
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {display: false},
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => `${Math.round(ctx.parsed.y)}m`,
+                                title: (items) => `${items[0].label}km`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            display: true,
+                            title: {display: true, text: 'Distance (km)', font: {size: 10}},
+                            ticks: {maxTicksLimit: 6, font: {size: 9}}
+                        },
+                        y: {
+                            display: true,
+                            title: {display: true, text: 'Elevation (m)', font: {size: 10}},
+                            ticks: {font: {size: 9}}
+                        }
+                    }
+                }
+            });
+        }
+
+        function initializeMap() {
+            // Populate stats bar
+            const statsHtml = `
+                <div class="stat-box">
+                    <span class="stat-value">${data.totals.distance}</span>
+                    <span class="stat-label">Total Distance (km)</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value">${data.totals.elevation_gain}</span>
+                    <span class="stat-label">Elevation Gain (m)</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value">${data.totals.elevation_loss}</span>
+                    <span class="stat-label">Elevation Loss (m)</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value">${data.totals.duration}</span>
+                    <span class="stat-label">Total Time</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-value">${data.totals.num_hikes}</span>
+                    <span class="stat-label">Days</span>
+                </div>
+            `;
+            document.getElementById('stats-bar').innerHTML = statsHtml;
+
+            const map = L.map('map').setView([28.1, -17.25], 11);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            L.tileLayer('https://tiles.wmflabs.org/hillshading/{z}/{x}/{y}.png', {opacity: 0.3}).addTo(map);
+
+            let html = '';
+            const bounds = L.latLngBounds();
+            
+            data.tracks.forEach((t, i) => {
+                const photoCount = t.photos ? t.photos.length : 0;
+                html += `<div class="hike-card" style="border-left-color:${t.color}">
+                    <div class="hike-title">Day ${i+1}: ${t.name}</div>
+                    <div style="font-size:0.85em;color:#666">${t.date} • ${t.stats.distance}km • ↑${t.stats.elevation_gain}m</div>`;
+
+                if (t.description) {
+                    html += `<div class="day-description">${t.description}</div>`;
+                }
+
+                if (t.highlights) {
+                    html += `<div class="day-highlights">🌟 ${t.highlights}</div>`;
+                }
+
+                if (t.difficulty) {
+                    html += `<div class="difficulty-badge">⚠️ ${t.difficulty}</div>`;
+                }
+
+                if (t.weather) {
+                    html += `<div class="weather-info">${t.weather.icon} <strong>${t.weather.temp_low}-${t.weather.temp_high}°C</strong> • ${t.weather.conditions}<br><small>${t.weather.wind}</small></div>`;
+                }
+
+                html += `<div class="elevation-chart-container">
+                    <canvas id="chart-${i}" class="elevation-chart"></canvas>
+                </div>`;
+
+                if (photoCount > 0) {
+                    html += `<div style="margin-top:15px;padding-top:15px;border-top:1px solid #e0e0e0"><div class="photo-count">📸 ${photoCount} Photo${photoCount>1?'s':''}</div></div>`;
+                }
+                html += `</div>`;
+
+                // Draw gradient-colored route
+                drawGradientRoute(map, t.points, t.color);
+
+                // Add bounds and start marker
+                t.points.forEach(p => bounds.extend([p[0], p[1]]));
+                if (t.points.length > 0) {
+                    L.circleMarker([t.points[0][0], t.points[0][1]], {
+                        radius:6, fillColor:t.color, color:'white', weight:2, fillOpacity:1
+                    }).addTo(map).bindPopup(`<b>Start: ${t.name}</b><br>${t.date}`);
+                }
+
+                // Create photo cluster for this day
+                if (t.photos && t.photos.length > 0) {
+                    const cluster = L.markerClusterGroup({
+                        maxClusterRadius: 80,
+                        disableClusteringAtZoom: 15,
+                        spiderfyOnMaxZoom: true,
+                        iconCreateFunction: function(cluster) {
+                            return L.divIcon({
+                                html: `<div style="background:${t.color};color:white;border-radius:50%;width:40px;height:40px;display:flex;align-items:center;justify-content:center;font-weight:bold;border:3px solid white;box-shadow:0 2px 8px rgba(0,0,0,0.3)">${cluster.getChildCount()}</div>`,
+                                className: '',
+                                iconSize: [40, 40]
+                            });
+                        }
+                    });
+
+                    t.photos.forEach(p => {
+                        const icon = L.divIcon({html:'📷',className:'',iconSize:[24,24]});
+                        const marker = L.marker([p.latitude, p.longitude], {icon});
+                        const caption = p.caption || '';
+                        const lightboxInfo = `<b>Day ${i+1}</b> • ${p.distance_along_route_km.toFixed(2)}km • ${Math.round(p.track_ele)}m${caption ? '<br><br>' + caption : ''}`;
+                        marker.bindPopup(`
+                            <div style="text-align:center;max-width:220px">
+                                <img src="photos/${p.thumb_filename}" style="width:200px;border-radius:8px;margin-bottom:8px;cursor:pointer"
+                                    onclick="openLightbox('photos/${p.web_filename}', \`${lightboxInfo.replace(/'/g, "\\'")}\`)">
+                                <br><b>Day ${i+1}</b><br>${p.distance_along_route_km.toFixed(2)}km • ${Math.round(p.track_ele)}m
+                                ${caption ? '<br><br><div style="font-size:0.85em;font-style:italic;color:#555;text-align:left;margin-top:8px">' + caption + '</div>' : ''}
+                            </div>
+                        `);
+                        cluster.addLayer(marker);
+                    });
+
+                    map.addLayer(cluster);
+                }
+            });
+            
+            document.getElementById('sidebar').innerHTML = html;
+
+            // Store initial bounds for reset function
+            const initialBounds = bounds;
+            map.fitBounds(bounds, {padding: [50, 50]});
+
+            // Reset map view function
+            window.resetMapView = function() {
+                map.fitBounds(initialBounds, {padding: [50, 50]});
+            };
+
+            // Create elevation charts after DOM is ready
+            setTimeout(() => {
+                data.tracks.forEach((t, i) => {
+                    createElevationChart(`chart-${i}`, t.points, t.color);
+                });
+            }, 100);
+
+            // Add gradient legend to map
+            const legendHtml = `
+                <div class="gradient-legend">
+                    <div style="font-weight:600;margin-bottom:8px">Route Gradient</div>
+                    <div class="gradient-legend-item">
+                        <div class="gradient-color" style="background:#4ade80"></div>
+                        <span>0-5% (Easy)</span>
+                    </div>
+                    <div class="gradient-legend-item">
+                        <div class="gradient-color" style="background:#fbbf24"></div>
+                        <span>5-10% (Moderate)</span>
+                    </div>
+                    <div class="gradient-legend-item">
+                        <div class="gradient-color" style="background:#fb923c"></div>
+                        <span>10-15% (Steep)</span>
+                    </div>
+                    <div class="gradient-legend-item">
+                        <div class="gradient-color" style="background:#f87171"></div>
+                        <span>15%+ (Very Steep)</span>
+                    </div>
+                </div>
+            `;
+            document.querySelector('.map-container').insertAdjacentHTML('beforeend', legendHtml);
+
+            // Add reset button separately
+            const resetButton = document.createElement('button');
+            resetButton.className = 'reset-button';
+            resetButton.innerHTML = '🗺️ Reset View';
+            resetButton.onclick = resetMapView;
+            document.querySelector('.map-container').appendChild(resetButton);
+        }
+        
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
+    </script>
+</body>
+</html>
